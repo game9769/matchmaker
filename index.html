@@ -108,11 +108,21 @@
             font-size: 24px;
             color: #ff69b4;
         }
-        .decorative-heart {
+        .decorative-heart-left {
             position: absolute;
             top: 10%;
-            left: 50%;
-            transform: translateX(-50%);
+            left: 5%;
+            transform: rotate(-20deg);
+            font-size: 50px;
+            color: #ff69b4;
+            opacity: 0.5;
+            z-index: -1;
+        }
+        .decorative-heart-right {
+            position: absolute;
+            top: 10%;
+            right: 5%;
+            transform: rotate(20deg);
             font-size: 50px;
             color: #ff69b4;
             opacity: 0.5;
@@ -170,8 +180,8 @@
         本工具仅供娱乐参考，结果不具备科学依据，不应作为决策依据. 💬
     </div>
 </div>
-<span class="decorative-heart">&#10084;</span>
-<span class="emoji-large">💕</span>
+<span class="decorative-heart-left">&#10084;</span>
+<span class="decorative-heart-right">&#10084;</span>
 <div class="background-balloons"></div>
 
 <script>
