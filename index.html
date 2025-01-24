@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蕾蕾小红娘</title>
+    <style>
+        body {
+            font-family: 'Cursive', sans-serif;
+            background: linear-gradient(135deg, #ffe6f7, #ffc2e4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        h1 {
+            color: #ff69b4;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #ff69b4;
+        }
+        input[type="text"], select {
+            width: calc(100% - 22px);
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ff69b4;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus, select:focus {
+            border-color: #ff1493;
+            outline: none;
+        }
+        button {
+            padding: 12px 24px;
+            background-color: #ff69b4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #ff1493;
+        }
+        .result, .error-message {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+        .loading {
+            animation: loadingAnimation 5s linear infinite;
+        }
+        @keyframes loadingAnimation {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+        .love-message {
+            margin-top: 20px;
+            font-style: italic;
+            color: #ff69b4;
+        }
+        .location-button-container {
+            margin-top: 10px;
+            text-align: right;
+        }
+        .location-button-container button {
+            padding: 8px 16px;
+        }
+        .disclaimer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #888;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            input[type="text"], select, button {
+                padding: 10px;
+            }
+        }
+        .heart-icon {
+            font-size: 24px;
+            color: #ff69b4;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>蕾蕾小红娘</h1>
+    <label for="gender">性别:</label>
+    <select id="gender">
+        <option value="">请选择性别</option>
+        <option value="男">男</option>
+        <option value="女">女</option>
+    </select>
+    <br>
+    <label for="name">姓名:</label>
+    <input type="text" id="name" placeholder="请输入您的姓名">
+    <br>
+    <button id="calculateButton">测一测</button>
+    <div class="error-message" id="errorMessage"></div>
+    <div class="result" id="pairResult"></div>
+    <div class="location-button-container">
+        <button id="locationButton" style="display:none;">测算位置</button>
+    </div>
+    <div class="result" id="locationResult"></div>
+    <div class="love-message" id="loveMessage"></div>
+    <div class="disclaimer">
+        本工具仅供娱乐参考，结果不具备科学依据，不应作为决策依据。
+    </div>
+</div>
+
+<script>
+    const coupleLibrary = {
+        "周友来": { female: "胡蕾", location: "安徽-合肥" },
+        "胡蕾": { male: "周友来", location: "安徽-合肥" }
+    };
+    const loveQuotesLibrary = {
+        "周友来": [
+            "老婆，我爱你。",
+            "最最喜欢你啦。",
+            "我会做，最爱你的那一位。"
+        ],
+        "胡蕾": [
+            "无需节日赋予意义，我时刻爱你",
+            "有你在的时候其他男生的好，好像也没那么好了。",
+            "也不会有比你更好的男生了。"
+        ]
+    };
+    const surnames = ["赵", "钱", "孙", "李", "王", "张", "刘", "陈", "杨", "黄"];
+    const doubleSurnames = ["上官", "纳兰", "欧阳", "司马", "诸葛"];
+    const femaleNames = ["敏", "艳", "丽", "华", "梅", "静", "芳", "瑶", "婷", "娜"];
+    const maleNames = ["强", "勇", "刚", "明", "杰", "伟", "峰", "洋", "浩", "雷"];
+    const randomLoveQuotes = [
+        "你是我的唯一。",
+        "有你在的地方就有阳光。",
+        "与你相遇是我一生中最美好的决定。"
+    ];
+    const randomLocations = [
+        "江苏-南京", "安徽-合肥", "四川-成都"
+    ];
+
+    let previousInputs = {};
+    let currentPairName = "";
+
+    document.getElementById('gender').addEventListener('change', clearResults);
+    document.getElementById('name').addEventListener('input', clearResults);
+    document.getElementById('calculateButton').addEventListener('click', calculatePair);
+    document.getElementById('locationButton').addEventListener('click', calculateLocation);
+
+    function clearResults() {
+        document.getElementById("pairResult").innerHTML = "";
+        document.getElementById("locationResult").innerHTML = "";
+        document.getElementById("locationButton").style.display = "none";
+        document.getElementById("errorMessage").innerText = "";
+        document.getElementById("loveMessage").innerText = "";
+        currentPairName = "";
+    }
+
+    async function calculatePair() {
+        const gender = document.getElementById("gender").value;
+        const name = document.getElementById("name").value;
+        const errorMessageDiv = document.getElementById("errorMessage");
+        const pairResultDiv = document.getElementById("pairResult");
+        const locationButton = document.getElementById("locationButton");
+
+        if (!gender || !name) {
+            errorMessageDiv.innerText = "请填写完整的性别和姓名！";
+            return;
+        }
+
+        if (name.length < 2) {
+            errorMessageDiv.innerText = "请输入至少两个字的完整姓名！";
+            return;
+        }
+
+        // Hide location button and result initially
+        locationButton.style.display = "none";
+        document.getElementById("locationResult").innerHTML = "";
+
+        const key = `${gender}-${name}`;
+
+        if (previousInputs[key]) {
+            const { pairName, location } = previousInputs[key];
+            pairResultDiv.innerHTML = `<span class="loading">正在推演...</span>`;
+            setTimeout(() => {
+                pairResultDiv.innerHTML = `你的有缘人：<span class="heart-icon">&#10084;</span>${pairName}`;
+                locationButton.style.display = "block";
+                currentPairName = pairName;
+                setRandomLoveQuote(pairName);
+                if (location) {
+                    document.getElementById("locationResult").innerHTML = ""; // Clear location result
+                }
+            }, 5200);
+            return;
+        }
+
+        const foundCouple = coupleLibrary[name];
+        let foundPairName;
+
+        if (foundCouple) {
+            if ((gender === "男" && foundCouple.female) || (gender === "女" && foundCouple.male)) {
+                foundPairName = (gender === "男") ? foundCouple.female : foundCouple.male;
+            }
+        }
+
+        if (!foundPairName) {
+            foundPairName = generateRandomName(getOppositeGender(gender));
+        }
+
+        pairResultDiv.innerHTML = `<span class="loading">正在推演...</span>`;
+        setTimeout(() => {
+            pairResultDiv.innerHTML = `你的有缘人：<span class="heart-icon">&#10084;</span>${foundPairName}`;
+            locationButton.style.display = "block";
+            const location = coupleLibrary[foundPairName]?.location || generateRandomAddress();
+            previousInputs[key] = { pairName: foundPairName, location: location };
+            currentPairName = foundPairName;
+            setRandomLoveQuote(foundPairName);
+        }, 5200);
+    }
+
+    async function calculateLocation() {
+        const locationResultDiv = document.getElementById("locationResult");
+        const name = document.getElementById("name").value;
+        const gender = document.getElementById("gender").value;
+        const key = `${gender}-${name}`;
+
+        if (!previousInputs[key]) {
+            alert("请先点击“测一测”获取结果！");
+            return;
+        }
+
+        const location = previousInputs[key].location;
+        locationResultDiv.innerHTML = `<span class="loading">正在推演...</span>`;
+        setTimeout(() => {
+            locationResultDiv.innerHTML = `可能位于：${location}`;
+        }, 6666);
+    }
+
+    function setRandomLoveQuote(name) {
+        const quotes = loveQuotesLibrary[name] || randomLoveQuotes;
+        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+        document.getElementById("loveMessage").innerText = randomQuote;
+    }
+
+    function generateRandomAddress() {
+        return randomLocations[Math.floor(Math.random() * randomLocations.length)];
+    }
+
+    function getOppositeGender(gender) {
+        return gender === "男" ? "女" : "男";
+    }
+
+    function generateRandomName(gender) {
+        const firstNamePool = gender === "男" ? maleNames : femaleNames;
+        let surname;
+        let firstNameLength;
+
+        // Determine the length of the first name based on given probabilities
+        const randomValue = Math.random();
+        if (randomValue < 0.9) {
+            // 90% chance
+            if (Math.random() > 0.5) {
+                surname = surnames[Math.floor(Math.random() * surnames.length)]; // 单姓
+                firstNameLength = 2; // 单姓 + 两字名
+            } else {
+                surname = doubleSurnames[Math.floor(Math.random() * doubleSurnames.length)]; // 复姓
+                firstNameLength = 1; // 复姓 + 一字名
+            }
+        } else if (randomValue < 0.999) {
+            // 9.9% chance
+            surname = surnames[Math.floor(Math.random() * surnames.length)]; // 单姓
+            firstNameLength = 1; // 单姓 + 一字名
+        } else {
+            // 0.1% chance
+            surname = doubleSurnames[Math.floor(Math.random() * doubleSurnames.length)]; // 复姓
+            firstNameLength = 2; // 复姓 + 两字名
+        }
+
+        let firstName = "";
+        for (let i = 0; i < firstNameLength; i++) {
+            firstName += firstNamePool[Math.floor(Math.random() * firstNamePool.length)];
+        }
+
+        return surname + firstName;
+    }
+
+    setInterval(() => {
+        setRandomLoveQuote(currentPairName);
+    }, 5200);
+
+    document.getElementById("loveMessage").innerText = randomLoveQuotes[Math.floor(Math.random() * randomLoveQuotes.length)];
+
+    // Ensure love message updates when inputs change
+    document.getElementById('gender').addEventListener('change', () => {
+        if (currentPairName) {
+            setRandomLoveQuote(currentPairName);
+        }
+    });
+    document.getElementById('name').addEventListener('input', () => {
+        if (currentPairName) {
+            setRandomLoveQuote(currentPairName);
+        }
+    });
+</script>
+</body>
+</html>
+
+
+
